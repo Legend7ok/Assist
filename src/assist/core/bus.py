@@ -40,6 +40,9 @@ class EventBus:
     def subscribe[E: Event](
         self, event_type: type[E], handler: Handler[E], *, name: str | None = None
     ) -> None:
+        # After close() nobody sends this worker its stop marker: it would wait forever.
+        if self._closed:
+            raise RuntimeError("Event bus is closed")
         subscription = _Subscription(
             event_type=event_type,
             handler=handler,

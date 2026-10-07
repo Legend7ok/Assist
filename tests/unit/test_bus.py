@@ -179,6 +179,15 @@ async def test_publish_after_close_is_ignored():
     assert pings.events == []
 
 
+async def test_subscribe_after_close_is_refused():
+    bus = EventBus()
+    await bus.start()
+    await bus.close()
+
+    with pytest.raises(RuntimeError):
+        bus.subscribe(Ping, Recorder())
+
+
 async def test_full_queue_drops_the_oldest_event():
     bus = EventBus(queue_size=2)
     release = asyncio.Event()
