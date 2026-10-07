@@ -4,3 +4,20 @@
 
 [log]
 level = "INFO"
+
+# Chat models. api_key_env names the key in .env; timeout is in seconds.
+[llm.answer]
+provider = "openai_compat"
+base_url = "https://api.groq.com/openai/v1"
+model = "openai/gpt-oss-120b"
+api_key_env = "GROQ_API_KEY"
+params = { reasoning_effort = "low" }
+timeout = 30.0
+
+# Off until the exact Gemini model name is taken from Google AI Studio.
+# [llm.summary]
+# provider = "openai_compat"
+# base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# model = ""
+# api_key_env = "GEMINI_API_KEY"
+# timeout = 30.0
