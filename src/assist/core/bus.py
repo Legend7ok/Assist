@@ -91,15 +91,35 @@ class EventBus:
             # The loop is already closed: an audio callback can still fire during shutdown.
             log.debug("bus_publish_after_loop_closed", program_event=type(event).__name__)
 
-    async def close(self) -> None:
-        """Stop accepting events, let every subscriber finish its queue, then stop workers."""
+    async def close(self, grace_period: float = 5.0) -> None:
+        """Stop accepting events and let subscribers finish their queues.
+
+        A subscriber still busy after `grace_period` seconds (a handler stuck on a dead
+        network connection) is cancelled, so closing the app never hangs on it.
+        """
         if self._closed:
             return
         self._closed = True
+
+        stop_markers: list[asyncio.Task[None]] = []
         for subscription in self._subscriptions:
-            await subscription.queue.put(_STOP)
-        tasks = [s.task for s in self._subscriptions if s.task is not None]
-        await asyncio.gather(*tasks)
+            if subscription.queue.full():
+                # Waiting here for room could block forever on a stalled subscriber. The put
+                # waits in the background instead and is bounded by the grace period below.
+                stop_markers.append(asyncio.create_task(subscription.queue.put(_STOP)))
+            else:
+                subscription.queue.put_nowait(_STOP)
+
+        workers = {s.task: s for s in self._subscriptions if s.task is not None}
+        pending: set[asyncio.Task[None]] = set()
+        if workers:
+            _, pending = await asyncio.wait(workers, timeout=grace_period)
+        for task in pending:
+            log.warning("bus_subscriber_cancelled_on_close", subscriber=workers[task].name)
+            task.cancel()
+        for marker in stop_markers:
+            marker.cancel()
+        await asyncio.gather(*pending, *stop_markers, return_exceptions=True)
 
     def _start_worker(self, subscription: _Subscription) -> None:
         assert self._loop is not None

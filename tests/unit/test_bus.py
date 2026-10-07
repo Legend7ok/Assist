@@ -166,6 +166,42 @@ async def test_close_handles_everything_queued_before_it():
     assert [e.n for e in pings.events] == list(range(10))
 
 
+async def test_close_cancels_a_subscriber_stuck_past_the_grace_period():
+    bus = EventBus()
+    cancelled = asyncio.Event()
+
+    async def stuck(_: Ping) -> None:
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    bus.subscribe(Ping, stuck)
+    await bus.start()
+    bus.publish(Ping(n=1))
+    await settle()
+
+    await asyncio.wait_for(bus.close(grace_period=0.05), timeout=1)
+
+    assert cancelled.is_set()
+
+
+async def test_close_does_not_wait_for_room_in_a_full_queue():
+    bus = EventBus(queue_size=1)
+
+    async def stuck(_: Ping) -> None:
+        await asyncio.Event().wait()
+
+    bus.subscribe(Ping, stuck)
+    await bus.start()
+    bus.publish(Ping(n=1))
+    await settle()  # the worker blocks on 1
+    bus.publish(Ping(n=2))  # fills the queue
+
+    await asyncio.wait_for(bus.close(grace_period=0.05), timeout=1)
+
+
 async def test_publish_after_close_is_ignored():
     bus = EventBus()
     pings = Recorder()
