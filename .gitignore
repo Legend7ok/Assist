@@ -27,8 +27,7 @@ htmlcov/
 # Frontend
 node_modules/
 
-# Runtime output: logs and meeting transcripts are private
-logs/
+# Runtime output: meeting transcripts are private
 sessions/
 
 # Local plans
