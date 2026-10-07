@@ -9,6 +9,7 @@ dependencies = [
     "numpy>=2.5.3",
     "pyaudiowpatch>=0.2.12.9",
     "pydantic-settings>=2.15.0",
+    "soxr>=1.1.0",
     "structlog>=26.1.0",
 ]
 
