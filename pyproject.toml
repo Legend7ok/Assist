@@ -5,9 +5,13 @@ description = "Real-time AI prompter for online meetings: live transcription, me
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "colorama>=0.4.6 ; sys_platform == 'win32'",
     "pydantic-settings>=2.15.0",
     "structlog>=26.1.0",
 ]
+
+[project.scripts]
+assist = "assist.__main__:main"
 
 [dependency-groups]
 dev = [
