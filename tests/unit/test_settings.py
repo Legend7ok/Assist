@@ -66,6 +66,11 @@ def test_unknown_llm_key_name_is_rejected_at_startup(make_settings):
         make_settings(toml=LLM_ANSWER.format(key="GROQ_KEY"))
 
 
+def test_summary_part_not_shorter_than_the_window_is_rejected(make_settings):
+    with pytest.raises(ValidationError, match="compress_seconds"):
+        make_settings(toml="[context]\nwindow_seconds = 60\ncompress_seconds = 60\n")
+
+
 def test_api_key_is_found_by_its_env_name(make_settings):
     settings = make_settings(env="GROQ_API_KEY=secret-value\n")
 

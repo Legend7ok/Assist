@@ -66,6 +66,21 @@ class NotesChanged(Event):
     text: str
 
 
+class SummaryRequested(Event):
+    """The oldest part of the window goes into the summary.
+
+    Until SummaryUpdated or SummaryFailed these items stay in the context and cannot be edited.
+    """
+
+    items: tuple[Segment | Answer, ...]
+
+
+class SummaryFailed(Event):
+    """The requested part was not summarized; it stays in the window for the next attempt."""
+
+    reason: str
+
+
 class SummaryUpdated(Event):
     """The summary absorbed older phrases and answers; their ids leave the window and the feed."""
 

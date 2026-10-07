@@ -51,6 +51,17 @@ class LLMSettings(Section):
     summary: LLMEndpoint | None = None
 
 
+class ContextSettings(Section):
+    window_seconds: float = Field(default=300.0, gt=0)
+    compress_seconds: float = Field(default=120.0, gt=0)
+
+    @model_validator(mode="after")
+    def _check_compress_part(self) -> Self:
+        if self.compress_seconds >= self.window_seconds:
+            raise ValueError("context.compress_seconds must be less than window_seconds")
+        return self
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=CONFIG_FILE,
@@ -67,6 +78,7 @@ class Settings(BaseSettings):
 
     log: LogSettings = LogSettings()
     llm: LLMSettings = LLMSettings()
+    context: ContextSettings = ContextSettings()
 
     # Explicit aliases drop the ASSIST_ prefix so keys keep the names providers use.
     # Optional so the app starts before the stages that need them are reached.
