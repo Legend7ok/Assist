@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "colorama>=0.4.6 ; sys_platform == 'win32'",
+    "numpy>=2.5.3",
+    "pyaudiowpatch>=0.2.12.9",
     "pydantic-settings>=2.15.0",
     "structlog>=26.1.0",
 ]

@@ -6,7 +6,15 @@ from pydantic_settings import SettingsConfigDict
 
 from assist.settings import Settings
 
-ENV_VARS = ("ASSIST_LOG__LEVEL", "GLADIA_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY")
+ENV_VARS = (
+    "ASSIST_LOG__LEVEL",
+    "ASSIST_AUDIO__LOOPBACK_DEVICE",
+    "ASSIST_AUDIO__MIC_DEVICE",
+    "ASSIST_AUDIO__FRAME_MS",
+    "GLADIA_API_KEY",
+    "GROQ_API_KEY",
+    "GEMINI_API_KEY",
+)
 
 
 @pytest.fixture
@@ -68,3 +76,23 @@ def test_unrelated_variable_in_env_file_is_ignored(make_settings):
     settings = make_settings(env="UV_LINK_MODE=copy\n")
 
     assert settings.log.level == "INFO"
+
+
+def test_audio_devices_default_to_the_windows_ones(make_settings):
+    settings = make_settings()
+
+    assert settings.audio.loopback_device is None
+    assert settings.audio.mic_device is None
+
+
+def test_frame_length_from_environment_variable_is_accepted(make_settings, monkeypatch):
+    monkeypatch.setenv("ASSIST_AUDIO__FRAME_MS", "30")
+
+    settings = make_settings()
+
+    assert settings.audio.frame_ms == 30
+
+
+def test_frame_length_webrtcvad_cannot_take_is_rejected(make_settings):
+    with pytest.raises(ValidationError):
+        make_settings(toml="[audio]\nframe_ms = 25\n")
