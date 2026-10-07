@@ -1,0 +1,6 @@
+# Non-secret settings. API keys live in .env (see .env.example).
+# Any value can be overridden by an environment variable ASSIST_<SECTION>__<KEY>,
+# for example ASSIST_LOG__LEVEL=DEBUG.
+
+[log]
+level = "INFO"
