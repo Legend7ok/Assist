@@ -24,7 +24,8 @@ from assist.core.events import (
 )
 from assist.core.schemas import Answer, Segment, Speaker
 from assist.settings import StorageSettings
-from assist.storage.session import Record, SessionRecorder, record_adapter
+from assist.storage.records import Record, record_adapter
+from assist.storage.session import SessionRecorder
 
 INFO = {"languages": ["uk", "en"]}
 
@@ -176,3 +177,15 @@ async def test_events_after_stop_are_not_written_and_second_stop_does_nothing(se
     await session.finish()
 
     assert session.types() == ["session_started", "session_ended"]
+
+
+async def test_stop_exports_the_session_to_markdown_next_to_it(session):
+    session.publish(phrase("What is an index?"))
+    await session.bus.close()
+
+    markdown = await session.recorder.stop()
+
+    assert session.recorder.path is not None
+    assert markdown == session.recorder.path.with_suffix(".md")
+    assert "Interlocutor:** What is an index?" in markdown.read_text(encoding="utf-8")
+    assert await session.recorder.stop() is None

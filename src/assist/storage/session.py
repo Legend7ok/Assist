@@ -9,17 +9,16 @@ import os
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Annotated, Literal, TextIO
+from typing import TextIO
 
 import structlog
-from pydantic import AwareDatetime, Field, JsonValue, TypeAdapter
+from pydantic import JsonValue
 
 from assist.core.bus import EventBus
 from assist.core.events import (
     AnswerDone,
     AnswerFailed,
     AnswerRequested,
-    Component,
     ComponentState,
     Event,
     NotesChanged,
@@ -29,89 +28,23 @@ from assist.core.events import (
     SummaryUpdated,
     TranscriptFinal,
 )
-from assist.core.schemas import Answer, Frozen, Segment
 from assist.settings import StorageSettings
+from assist.storage.export import export_session
+from assist.storage.records import (
+    AnswerFailedRecord,
+    AnswerRecord,
+    NotesRecord,
+    PhraseEditedRecord,
+    PhraseRecord,
+    Record,
+    SessionEnded,
+    SessionStarted,
+    StatusErrorRecord,
+    SummaryEditedRecord,
+    SummaryRecord,
+)
 
 log = structlog.get_logger(__name__)
-
-
-class SessionStarted(Frozen):
-    type: Literal["session_started"] = "session_started"
-    started_at: AwareDatetime
-    info: dict[str, JsonValue] = Field(default_factory=dict)
-
-
-class PhraseRecord(Frozen):
-    type: Literal["phrase"] = "phrase"
-    segment: Segment
-
-
-class PhraseEditedRecord(Frozen):
-    type: Literal["phrase_edited"] = "phrase_edited"
-    at: float
-    segment_id: str
-    text: str
-
-
-class AnswerRecord(Frozen):
-    type: Literal["answer"] = "answer"
-    answer: Answer
-
-
-class AnswerFailedRecord(Frozen):
-    type: Literal["answer_failed"] = "answer_failed"
-    at: float
-    answer_id: str
-    reason: str
-
-
-class SummaryRecord(Frozen):
-    type: Literal["summary"] = "summary"
-    at: float
-    text: str
-    absorbed_ids: tuple[str, ...]
-
-
-class SummaryEditedRecord(Frozen):
-    type: Literal["summary_edited"] = "summary_edited"
-    at: float
-    text: str
-
-
-class NotesRecord(Frozen):
-    type: Literal["notes"] = "notes"
-    at: float
-    text: str
-
-
-class StatusErrorRecord(Frozen):
-    type: Literal["status_error"] = "status_error"
-    at: float
-    component: Component
-    detail: str
-
-
-class SessionEnded(Frozen):
-    type: Literal["session_ended"] = "session_ended"
-    at: float
-
-
-# Records have their own types instead of dumped events: the file outlives the code that wrote
-# it, so renaming an event must not make older sessions unreadable.
-Record = Annotated[
-    SessionStarted
-    | PhraseRecord
-    | PhraseEditedRecord
-    | AnswerRecord
-    | AnswerFailedRecord
-    | SummaryRecord
-    | SummaryEditedRecord
-    | NotesRecord
-    | StatusErrorRecord
-    | SessionEnded,
-    Field(discriminator="type"),
-]
-record_adapter: TypeAdapter[Record] = TypeAdapter(Record)
 
 
 class SessionRecorder:
@@ -164,10 +97,16 @@ class SessionRecorder:
         log.info("session_recording_started", path=str(path))
         return path
 
-    async def stop(self) -> None:
+    async def stop(self) -> Path | None:
+        """Finish the file and export it to Markdown next to it.
+
+        Returns the Markdown file, or None when there was nothing to stop or the export
+        failed. A failed export leaves the session file whole: scripts/export_session.py
+        exports it again.
+        """
         async with self._lock:
-            if self._file is None:
-                return
+            if self._file is None or self._path is None:
+                return None
             try:
                 at = self._now()
                 if (notes := self._notes_if_changed(at)) is not None:
@@ -177,6 +116,14 @@ class SessionRecorder:
                 file, self._file = self._file, None
                 await asyncio.to_thread(file.close)
         log.info("session_recording_stopped", path=str(self._path))
+
+        try:
+            markdown = await asyncio.to_thread(export_session, self._path)
+        except Exception:
+            log.exception("session_export_failed", path=str(self._path))
+            return None
+        log.info("session_exported", path=str(markdown))
+        return markdown
 
     async def _on_event(self, event: Event) -> None:
         async with self._lock:
