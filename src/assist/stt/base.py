@@ -7,6 +7,8 @@ from assist.core.schemas import Speaker
 # Both speakers go to one live session as two channels: the free Gladia plan allows only one
 # session at a time. The index in this tuple is the channel number.
 STEREO_CHANNELS: tuple[Speaker, Speaker] = (Speaker.THEM, Speaker.ME)
+SAMPLE_RATE = 16_000
+SAMPLE_WIDTH = 2  # bytes, int16
 
 
 class STTError(Exception):
@@ -17,6 +19,11 @@ class STTError(Exception):
 class StereoFrame:
     pcm: bytes  # 16 kHz, signed 16-bit little-endian, channels interleaved as STEREO_CHANNELS
     start: float  # meeting time of the first sample
+
+    @property
+    def samples(self) -> int:
+        """Samples per channel."""
+        return len(self.pcm) // (SAMPLE_WIDTH * len(STEREO_CHANNELS))
 
 
 @dataclass(frozen=True, slots=True)
