@@ -46,9 +46,10 @@ class TranscriptFinal(Event):
 
 
 class AnswerRequested(Event):
-    # The one-off request travels with the press that sends it, so a request typed and sent
-    # in one go cannot race with a separate "request changed" event.
-    request: str = ""
+    """AltGr or the button: answer now. A newer request cancels the answer being written."""
+
+    # No request text here: AltGr is caught by a keyboard hook that cannot see the window's
+    # field. The current request comes from RequestChanged instead.
 
 
 class AnswerDelta(Event):
@@ -67,6 +68,27 @@ class AnswerFailed(Event):
 
 class NotesChanged(Event):
     text: str
+
+
+class RequestChanged(Event):
+    """The one-off request field changed; empty text after an answer has used the request."""
+
+    text: str
+
+
+class SummaryRequested(Event):
+    """The oldest part of the window goes into the summary.
+
+    Until SummaryUpdated or SummaryFailed these items stay in the context and cannot be edited.
+    """
+
+    items: tuple[Segment | Answer, ...]
+
+
+class SummaryFailed(Event):
+    """The requested part was not summarized; it stays in the window for the next attempt."""
+
+    reason: str
 
 
 class SummaryUpdated(Event):

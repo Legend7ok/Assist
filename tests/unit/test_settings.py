@@ -1,44 +1,14 @@
-from pathlib import Path
-
 import pytest
 from pydantic import ValidationError
-from pydantic_settings import SettingsConfigDict
 
-from assist.settings import Settings
-
-ENV_VARS = (
-    "ASSIST_LOG__LEVEL",
-    "ASSIST_AUDIO__LOOPBACK_DEVICE",
-    "ASSIST_AUDIO__MIC_DEVICE",
-    "ASSIST_AUDIO__FRAME_MS",
-    "ASSIST_AUDIO__VAD_AGGRESSIVENESS",
-    "ASSIST_AUDIO__PRE_SPEECH_MS",
-    "ASSIST_AUDIO__MIN_SPEECH_MS",
-    "ASSIST_AUDIO__HANGOVER_MS",
-    "GLADIA_API_KEY",
-    "GROQ_API_KEY",
-    "GEMINI_API_KEY",
-)
-
-
-@pytest.fixture
-def make_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Build Settings from temporary config and .env files, isolated from the real ones."""
-    for name in ENV_VARS:
-        monkeypatch.delenv(name, raising=False)
-
-    def factory(toml: str = "", env: str = "") -> Settings:
-        toml_file = tmp_path / "default.toml"
-        env_file = tmp_path / ".env"
-        toml_file.write_text(toml, encoding="utf-8")
-        env_file.write_text(env, encoding="utf-8")
-
-        class IsolatedSettings(Settings):
-            model_config = SettingsConfigDict(toml_file=toml_file, env_file=env_file)
-
-        return IsolatedSettings()
-
-    return factory
+LLM_ANSWER = """
+[llm.answer]
+provider = "openai_compat"
+base_url = "https://api.groq.com/openai/v1"
+model = "openai/gpt-oss-120b"
+api_key_env = "{key}"
+params = {{ reasoning_effort = "low" }}
+"""
 
 
 def test_reads_values_from_config_file(make_settings):
@@ -80,6 +50,34 @@ def test_unrelated_variable_in_env_file_is_ignored(make_settings):
     settings = make_settings(env="UV_LINK_MODE=copy\n")
 
     assert settings.log.level == "INFO"
+
+
+def test_reads_llm_section_from_config_file(make_settings):
+    settings = make_settings(toml=LLM_ANSWER.format(key="GROQ_API_KEY"))
+
+    assert settings.llm.answer is not None
+    assert settings.llm.answer.model == "openai/gpt-oss-120b"
+    assert settings.llm.answer.params == {"reasoning_effort": "low"}
+    assert settings.llm.summary is None
+
+
+def test_unknown_llm_key_name_is_rejected_at_startup(make_settings):
+    with pytest.raises(ValidationError, match="GROQ_KEY"):
+        make_settings(toml=LLM_ANSWER.format(key="GROQ_KEY"))
+
+
+def test_summary_part_not_shorter_than_the_window_is_rejected(make_settings):
+    with pytest.raises(ValidationError, match="compress_seconds"):
+        make_settings(toml="[context]\nwindow_seconds = 60\ncompress_seconds = 60\n")
+
+
+def test_api_key_is_found_by_its_env_name(make_settings):
+    settings = make_settings(env="GROQ_API_KEY=secret-value\n")
+
+    key = settings.api_key("GROQ_API_KEY")
+
+    assert key is not None
+    assert key.get_secret_value() == "secret-value"
 
 
 def test_audio_devices_default_to_the_windows_ones(make_settings):

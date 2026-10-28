@@ -24,3 +24,34 @@ min_speech_ms = 60
 # Silence still sent after speech stops, so recognition sees the phrase end. Pauses shorter
 # than this stay inside the phrase.
 hangover_ms = 600
+
+# Meeting context. When the window of recent phrases and answers spans window_seconds, its
+# oldest compress_seconds go into the summary. Times are in seconds.
+[context]
+window_seconds = 300.0
+compress_seconds = 120.0
+summary_max_words = 300
+
+# Answers. A one-off request lifts the length rule, so it gets a larger token cap. The caps
+# include the model's reasoning tokens.
+[assistant]
+answer_max_tokens = 1024
+request_max_tokens = 4096
+temperature = 0.3
+
+# Chat models. api_key_env names the key in .env; timeout is in seconds.
+[llm.answer]
+provider = "openai_compat"
+base_url = "https://api.groq.com/openai/v1"
+model = "openai/gpt-oss-120b"
+api_key_env = "GROQ_API_KEY"
+params = { reasoning_effort = "low" }
+timeout = 30.0
+
+# Off until the exact Gemini model name is taken from Google AI Studio.
+# [llm.summary]
+# provider = "openai_compat"
+# base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# model = ""
+# api_key_env = "GEMINI_API_KEY"
+# timeout = 30.0
