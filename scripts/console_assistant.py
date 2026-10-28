@@ -13,7 +13,7 @@ import asyncio
 import sys
 import threading
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 
 from assist.assistant.answerer import Answerer
 from assist.context.notes import MeetingNotes
@@ -51,6 +51,8 @@ Commands:
 """
 
 SPEAKERS = {"я": Speaker.ME, "он": Speaker.THEM}
+
+type Clock = Callable[[], float]
 
 
 class UnavailableLLM:
@@ -98,7 +100,7 @@ def read_stdin_into(lines: asyncio.Queue[str | None], loop: asyncio.AbstractEven
     threading.Thread(target=read, name="stdin", daemon=True).start()
 
 
-async def read_commands(bus: EventBus, clock) -> None:
+async def read_commands(bus: EventBus, clock: Clock) -> None:
     lines: asyncio.Queue[str | None] = asyncio.Queue()
     read_stdin_into(lines, asyncio.get_running_loop())
     # The command reading several lines, and the lines read so far.
@@ -140,7 +142,7 @@ def publish_field(bus: EventBus, command: str, text: str) -> None:
         print("[request set, press AltGr]")
 
 
-def publish_phrase(bus: EventBus, clock, line: str) -> None:
+def publish_phrase(bus: EventBus, clock: Clock, line: str) -> None:
     who, separator, text = line.partition(":")
     speaker = SPEAKERS.get(who.strip().lower())
     if not separator or speaker is None or not text.strip():

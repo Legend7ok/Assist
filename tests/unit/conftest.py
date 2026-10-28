@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -5,13 +6,16 @@ from pydantic_settings import SettingsConfigDict
 
 from assist.settings import Settings
 
-ENV_VARS = ("ASSIST_LOG__LEVEL", "GLADIA_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY")
+API_KEYS = ("GLADIA_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY")
 
 
 @pytest.fixture
 def make_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Build Settings from temporary config and .env files, isolated from the real ones."""
-    for name in ENV_VARS:
+    # Any ASSIST_ override left in the terminal (for example a shorter window for a manual
+    # run) would otherwise leak into the settings under test.
+    overrides = [name for name in os.environ if name.upper().startswith("ASSIST_")]
+    for name in (*API_KEYS, *overrides):
         monkeypatch.delenv(name, raising=False)
 
     def factory(toml: str = "", env: str = "") -> Settings:
