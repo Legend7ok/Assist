@@ -29,6 +29,9 @@ class ComponentState(StrEnum):
 class AudioFrame(Event):
     speaker: Speaker
     pcm: bytes  # 16 kHz, mono, signed 16-bit little-endian
+    # Taken at capture, not counted from the audio sent: silence cut between phrases would
+    # make such a count fall behind the meeting.
+    start: float
 
 
 class TranscriptPartial(Event):

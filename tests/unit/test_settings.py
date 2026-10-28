@@ -78,3 +78,28 @@ def test_api_key_is_found_by_its_env_name(make_settings):
 
     assert key is not None
     assert key.get_secret_value() == "secret-value"
+
+
+def test_audio_devices_default_to_the_windows_ones(make_settings):
+    settings = make_settings()
+
+    assert settings.audio.loopback_device is None
+    assert settings.audio.mic_device is None
+
+
+def test_frame_length_from_environment_variable_is_accepted(make_settings, monkeypatch):
+    monkeypatch.setenv("ASSIST_AUDIO__FRAME_MS", "30")
+
+    settings = make_settings()
+
+    assert settings.audio.frame_ms == 30
+
+
+def test_frame_length_webrtcvad_cannot_take_is_rejected(make_settings):
+    with pytest.raises(ValidationError):
+        make_settings(toml="[audio]\nframe_ms = 25\n")
+
+
+def test_vad_aggressiveness_outside_webrtcvad_modes_is_rejected(make_settings):
+    with pytest.raises(ValidationError):
+        make_settings(toml="[audio]\nvad_aggressiveness = 4\n")
