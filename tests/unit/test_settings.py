@@ -10,6 +10,12 @@ api_key_env = "{key}"
 params = {{ reasoning_effort = "low" }}
 """
 
+STT = """
+[stt]
+provider = "gladia"
+api_key_env = "{key}"
+"""
+
 
 def test_reads_values_from_config_file(make_settings):
     settings = make_settings(toml='[log]\nlevel = "DEBUG"\n')
@@ -64,6 +70,31 @@ def test_reads_llm_section_from_config_file(make_settings):
 def test_unknown_llm_key_name_is_rejected_at_startup(make_settings):
     with pytest.raises(ValidationError, match="GROQ_KEY"):
         make_settings(toml=LLM_ANSWER.format(key="GROQ_KEY"))
+
+
+def test_stt_section_defaults_to_english_and_ukrainian_mixed(make_settings):
+    settings = make_settings(toml=STT.format(key="GLADIA_API_KEY"))
+
+    assert settings.stt is not None
+    assert settings.stt.provider == "gladia"
+    assert settings.stt.languages == ["en", "uk"]
+    assert settings.stt.code_switching is True
+
+
+def test_stt_section_left_out_of_config_is_none(make_settings):
+    settings = make_settings()
+
+    assert settings.stt is None
+
+
+def test_unknown_stt_key_name_is_rejected_at_startup(make_settings):
+    with pytest.raises(ValidationError, match=r"stt\.api_key_env.*GLADIA_KEY"):
+        make_settings(toml=STT.format(key="GLADIA_KEY"))
+
+
+def test_stt_without_languages_is_rejected(make_settings):
+    with pytest.raises(ValidationError, match="languages"):
+        make_settings(toml=STT.format(key="GLADIA_API_KEY") + "languages = []\n")
 
 
 def test_summary_part_not_shorter_than_the_window_is_rejected(make_settings):

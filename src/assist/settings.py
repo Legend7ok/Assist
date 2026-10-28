@@ -55,6 +55,15 @@ class AudioSettings(Section):
         return value
 
 
+class STTSettings(Section):
+    provider: Literal["gladia"]
+    api_key_env: str
+    languages: list[str] = Field(default_factory=lambda: ["en", "uk"], min_length=1)
+    code_switching: bool = True
+    endpointing_seconds: float = Field(default=0.3, gt=0)
+    max_phrase_seconds: float = Field(default=10.0, gt=0)
+
+
 class LLMEndpoint(Section):
     provider: Literal["openai_compat"]
     base_url: str
@@ -105,6 +114,8 @@ class Settings(BaseSettings):
 
     log: LogSettings = LogSettings()
     audio: AudioSettings = AudioSettings()
+    # None like the [llm.*] sections: the app starts, and only recognition fails, naming it.
+    stt: STTSettings | None = None
     llm: LLMSettings = LLMSettings()
     context: ContextSettings = ContextSettings()
     assistant: AssistantSettings = AssistantSettings()
@@ -121,13 +132,15 @@ class Settings(BaseSettings):
         return getattr(self, self._api_key_fields()[env_name])
 
     @model_validator(mode="after")
-    def _check_llm_key_names(self) -> Self:
+    def _check_api_key_names(self) -> Self:
         known = self._api_key_fields()
+        sections: dict[str, STTSettings | LLMEndpoint | None] = {"stt": self.stt}
         for purpose in LLMSettings.model_fields:
-            endpoint: LLMEndpoint | None = getattr(self.llm, purpose)
-            if endpoint is not None and endpoint.api_key_env not in known:
+            sections[f"llm.{purpose}"] = getattr(self.llm, purpose)
+        for name, section in sections.items():
+            if section is not None and section.api_key_env not in known:
                 raise ValueError(
-                    f"llm.{purpose}.api_key_env: unknown key {endpoint.api_key_env!r}, "
+                    f"{name}.api_key_env: unknown key {section.api_key_env!r}, "
                     f"expected one of {sorted(known)}"
                 )
         return self
