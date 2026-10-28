@@ -13,3 +13,14 @@ level = "INFO"
 # mic_device = "Microphone"
 # Frame length in milliseconds: 10, 20 or 30 (the lengths webrtcvad accepts).
 frame_ms = 20
+
+# Silence cutting (webrtcvad). Only speech is sent to speech recognition.
+# How strictly a frame must sound like speech: 0 (lenient) to 3 (strict).
+vad_aggressiveness = 2
+# Audio kept from before speech is detected, so the start of the first word is not lost.
+pre_speech_ms = 300
+# Speech within that window needed to open a phrase: a lone click or knock does not.
+min_speech_ms = 60
+# Silence still sent after speech stops, so recognition sees the phrase end. Pauses shorter
+# than this stay inside the phrase.
+hangover_ms = 600

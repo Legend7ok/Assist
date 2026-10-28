@@ -39,6 +39,10 @@ class AudioSettings(Section):
     loopback_device: str | None = None
     mic_device: str | None = None
     frame_ms: int = 20
+    vad_aggressiveness: int = Field(default=2, ge=0, le=3)
+    pre_speech_ms: int = Field(default=300, ge=0)
+    min_speech_ms: int = Field(default=60, gt=0)
+    hangover_ms: int = Field(default=600, ge=0)
 
     # Not Literal[10, 20, 30]: Literal does not coerce, so the string "30" from
     # ASSIST_AUDIO__FRAME_MS would be rejected.

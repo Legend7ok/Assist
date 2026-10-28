@@ -96,3 +96,8 @@ def test_frame_length_from_environment_variable_is_accepted(make_settings, monke
 def test_frame_length_webrtcvad_cannot_take_is_rejected(make_settings):
     with pytest.raises(ValidationError):
         make_settings(toml="[audio]\nframe_ms = 25\n")
+
+
+def test_vad_aggressiveness_outside_webrtcvad_modes_is_rejected(make_settings):
+    with pytest.raises(ValidationError):
+        make_settings(toml="[audio]\nvad_aggressiveness = 4\n")
