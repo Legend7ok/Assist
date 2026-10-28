@@ -9,6 +9,8 @@ import numpy as np
 import pyaudiowpatch as pyaudio
 import structlog
 
+from assist.core.schemas import Speaker
+
 log = structlog.get_logger(__name__)
 
 # PyAudioWPatch names the loopback twin of an output device "<output name> [Loopback]".
@@ -208,3 +210,36 @@ class AudioCapture:
         else:
             self._failing = False
         return None, pyaudio.paContinue
+
+
+class WasapiBackend:
+    """Opens the configured WASAPI device for each channel: the loopback for THEM, the mic for ME.
+
+    PortAudio lists devices only once, when it starts. A device plugged in later shows up
+    after close(), with the next start of the audio source.
+    """
+
+    def __init__(self, *, loopback_device: str | None, mic_device: str | None, frame_ms: int):
+        self._names = {Speaker.THEM: loopback_device, Speaker.ME: mic_device}
+        self._frame_ms = frame_ms
+        self._pa: pyaudio.PyAudio | None = None
+
+    def device(self, speaker: Speaker) -> AudioDevice:
+        catalog = DeviceCatalog.from_pyaudio(self._portaudio())
+        name = self._names[speaker]
+        if speaker is Speaker.THEM:
+            return catalog.loopback(name)
+        return catalog.microphone(name)
+
+    def open(self, device: AudioDevice, on_audio: AudioCallback) -> AudioCapture:
+        return AudioCapture(self._portaudio(), device, frame_ms=self._frame_ms, on_audio=on_audio)
+
+    def close(self) -> None:
+        if self._pa is not None:
+            self._pa.terminate()
+            self._pa = None
+
+    def _portaudio(self) -> pyaudio.PyAudio:
+        if self._pa is None:
+            self._pa = pyaudio.PyAudio()
+        return self._pa
