@@ -6,10 +6,11 @@
 level = "INFO"
 
 # Meeting context. When the window of recent phrases and answers spans window_seconds, its
-# oldest compress_seconds go into the summary. Values are in seconds.
+# oldest compress_seconds go into the summary. Times are in seconds.
 [context]
 window_seconds = 300.0
 compress_seconds = 120.0
+summary_max_words = 300
 
 # Chat models. api_key_env names the key in .env; timeout is in seconds.
 [llm.answer]

@@ -54,6 +54,7 @@ class LLMSettings(Section):
 class ContextSettings(Section):
     window_seconds: float = Field(default=300.0, gt=0)
     compress_seconds: float = Field(default=120.0, gt=0)
+    summary_max_words: int = Field(default=300, gt=0)
 
     @model_validator(mode="after")
     def _check_compress_part(self) -> Self:

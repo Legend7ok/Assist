@@ -13,7 +13,7 @@ from assist.core.events import (
     SummaryUpdated,
     TranscriptFinal,
 )
-from assist.core.schemas import Answer, Segment
+from assist.core.schemas import Answer, Segment, Speaker
 from assist.settings import ContextSettings
 
 log = structlog.get_logger(__name__)
@@ -27,6 +27,19 @@ def _start(item: ContextItem) -> float:
 
 def _end(item: ContextItem) -> float:
     return item.end if isinstance(item, Segment) else item.at
+
+
+_LABELS = {Speaker.THEM: "Interlocutor", Speaker.ME: "Me"}
+
+
+def format_timeline(items: tuple[ContextItem, ...]) -> str:
+    """Items as `[mm:ss] Who: text` lines, the form both the answer and the summary see."""
+    lines = []
+    for item in items:
+        seconds = int(_start(item))
+        label = _LABELS[item.speaker] if isinstance(item, Segment) else "Prompter answer"
+        lines.append(f"[{seconds // 60:02d}:{seconds % 60:02d}] {label}: {item.text}")
+    return "\n".join(lines)
 
 
 class ContextWindow:
