@@ -8,7 +8,7 @@ never stored in the config file.
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -35,6 +35,26 @@ class LogSettings(Section):
     level: LogLevel = "INFO"
 
 
+class AudioSettings(Section):
+    loopback_device: str | None = None
+    mic_device: str | None = None
+    frame_ms: int = 20
+    vad_aggressiveness: int = Field(default=2, ge=0, le=3)
+    pre_speech_ms: int = Field(default=300, ge=0)
+    min_speech_ms: int = Field(default=60, gt=0)
+    hangover_ms: int = Field(default=600, ge=0)
+
+    # Not Literal[10, 20, 30]: Literal does not coerce, so the string "30" from
+    # ASSIST_AUDIO__FRAME_MS would be rejected.
+    @field_validator("frame_ms")
+    @classmethod
+    def _vad_frame_length(cls, value: int) -> int:
+        # webrtcvad accepts only these frame lengths.
+        if value not in (10, 20, 30):
+            raise ValueError("frame_ms must be 10, 20 or 30")
+        return value
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=CONFIG_FILE,
@@ -50,6 +70,7 @@ class Settings(BaseSettings):
     )
 
     log: LogSettings = LogSettings()
+    audio: AudioSettings = AudioSettings()
 
     # Explicit aliases drop the ASSIST_ prefix so keys keep the names providers use.
     # Optional so the app starts before the stages that need them are reached.

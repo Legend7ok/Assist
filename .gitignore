@@ -27,8 +27,9 @@ htmlcov/
 # Frontend
 node_modules/
 
-# Runtime output: meeting transcripts are private
+# Runtime output: meeting transcripts and recordings are private
 sessions/
+samples/
 
 # Local plans and Claude Code instructions
 docs/
