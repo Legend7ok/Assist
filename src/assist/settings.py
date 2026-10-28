@@ -63,6 +63,12 @@ class ContextSettings(Section):
         return self
 
 
+class AssistantSettings(Section):
+    answer_max_tokens: int = Field(default=1024, gt=0)
+    request_max_tokens: int = Field(default=4096, gt=0)
+    temperature: float = Field(default=0.3, ge=0, le=2)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=CONFIG_FILE,
@@ -80,6 +86,7 @@ class Settings(BaseSettings):
     log: LogSettings = LogSettings()
     llm: LLMSettings = LLMSettings()
     context: ContextSettings = ContextSettings()
+    assistant: AssistantSettings = AssistantSettings()
 
     # Explicit aliases drop the ASSIST_ prefix so keys keep the names providers use.
     # Optional so the app starts before the stages that need them are reached.
