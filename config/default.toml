@@ -39,6 +39,11 @@ answer_max_tokens = 1024
 request_max_tokens = 4096
 temperature = 0.3
 
+# Session transcripts: one JSONL file per session, named by its start time. A relative path
+# is taken from the project root.
+[storage]
+sessions_dir = "sessions"
+
 # Chat models. api_key_env names the key in .env; timeout is in seconds.
 [llm.answer]
 provider = "openai_compat"
