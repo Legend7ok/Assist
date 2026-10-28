@@ -33,6 +33,10 @@ class Timeline:
         # Counted in samples: a sum of float durations would drift over a long meeting.
         self._sent_samples = 0
 
+    @property
+    def sent_seconds(self) -> float:
+        return self._sent_samples / SAMPLE_RATE
+
     def add(self, frame: StereoFrame) -> None:
         """Record a frame in the order it is sent."""
         last = self._pieces[-1] if self._pieces else None
