@@ -9,7 +9,7 @@ _SHARED_PROCESSORS: list[structlog.types.Processor] = [
     structlog.contextvars.merge_contextvars,
     structlog.stdlib.add_log_level,
     structlog.stdlib.add_logger_name,
-    structlog.processors.TimeStamper(fmt="%H:%M:%S"),
+    structlog.processors.TimeStamper(fmt="%H:%M:%S", utc=False),
     structlog.processors.StackInfoRenderer(),
 ]
 
