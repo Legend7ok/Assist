@@ -4,6 +4,9 @@ Phrases are typed instead of recognized, a lone AltGr (or /ask) asks for an answ
 answer is printed piece by piece as it comes. Needs GROQ_API_KEY in .env; the summary works
 once [llm.summary] is configured, until then each attempt to summarize fails visibly.
 
+The session is written to the sessions folder as it goes, and exported to Markdown on /quit
+or Ctrl+C.
+
 Run: uv run python scripts/console_assistant.py
 To see the summary sooner, shrink the window, for example:
     ASSIST_CONTEXT__WINDOW_SECONDS=60 ASSIST_CONTEXT__COMPRESS_SECONDS=30
@@ -39,6 +42,7 @@ from assist.llm.base import LLMClient, LLMError
 from assist.llm.factory import create_llm_client
 from assist.logging_setup import configure_logging
 from assist.settings import Settings
+from assist.storage.session import SessionRecorder
 
 HELP = """\
 Commands:
@@ -183,6 +187,8 @@ async def run() -> None:
         clock=clock,
     )
     bus.subscribe(Event, show, name="console")
+    recorder = SessionRecorder(bus, settings.storage, clock=clock)
+    print(f"Recording the session to {await recorder.start()}")
     await bus.start()
     hotkey = AnswerHotkey(bus)
     hotkey.start()
@@ -193,6 +199,10 @@ async def run() -> None:
         hotkey.stop()
         await answerer.close()
         await bus.close()
+        # After the bus: the events still queued are written before the session ends.
+        markdown = await recorder.stop()
+        if markdown is not None:
+            print(f"Session exported to {markdown}")
 
 
 def main() -> None:
