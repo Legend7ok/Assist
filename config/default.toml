@@ -53,10 +53,11 @@ api_key_env = "GROQ_API_KEY"
 params = { reasoning_effort = "low" }
 timeout = 30.0
 
-# Off until the exact Gemini model name is taken from Google AI Studio.
-# [llm.summary]
-# provider = "openai_compat"
-# base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-# model = ""
-# api_key_env = "GEMINI_API_KEY"
-# timeout = 30.0
+# Flash-Lite: the free tier gives it 500 requests a day, about 16 hours of meetings at one
+# summary per 2 minutes. The stronger Flash models get only 20, less than one hour.
+[llm.summary]
+provider = "openai_compat"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+model = "gemini-3.5-flash-lite"
+api_key_env = "GEMINI_API_KEY"
+timeout = 30.0
