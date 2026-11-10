@@ -98,6 +98,17 @@ class AssistantSettings(Section):
     temperature: float = Field(default=0.3, ge=0, le=2)
 
 
+class StorageSettings(Section):
+    sessions_dir: Path = Field(default=Path("sessions"), validate_default=True)
+
+    # A relative path is taken from the project root, not from the directory the app is
+    # launched from: there .gitignore keeps the private transcripts out of git.
+    @field_validator("sessions_dir")
+    @classmethod
+    def _from_project_root(cls, value: Path) -> Path:
+        return PROJECT_ROOT / value
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=CONFIG_FILE,
@@ -119,6 +130,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = LLMSettings()
     context: ContextSettings = ContextSettings()
     assistant: AssistantSettings = AssistantSettings()
+    storage: StorageSettings = StorageSettings()
 
     # Explicit aliases drop the ASSIST_ prefix so keys keep the names providers use.
     # Optional so the app starts before the stages that need them are reached.

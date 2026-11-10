@@ -111,7 +111,9 @@ class Answerer:
             return
 
         log.info("answer_done", chars=len(text), latency_ms=_ms_since(started))
-        self._bus.publish(AnswerDone(answer=Answer(id=answer_id, text=text, at=asked_at)))
+        self._bus.publish(
+            AnswerDone(answer=Answer(id=answer_id, text=text, at=asked_at, request=request))
+        )
         # Cleared only if unchanged: a request typed while this answer was being written is
         # meant for the next one.
         if request and self._notes.request == request:

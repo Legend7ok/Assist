@@ -171,6 +171,25 @@ async def test_request_is_cleared_after_the_answer(make_meeting):
     assert meeting.of_type(RequestChanged)[-1] == RequestChanged(text="")
 
 
+async def test_answer_keeps_its_request_after_the_field_is_cleared(make_meeting):
+    meeting = await make_meeting(["Done."])
+
+    await meeting.publish(RequestChanged(text="Review this code"), AnswerRequested())
+
+    (done,) = meeting.of_type(AnswerDone)
+    assert done.answer.request == "Review this code"
+    assert meeting.notes.request == ""
+
+
+async def test_answer_without_a_request_has_an_empty_one(make_meeting):
+    meeting = await make_meeting(["Speeds up lookups."])
+
+    await meeting.publish(QUESTION, AnswerRequested())
+
+    (done,) = meeting.of_type(AnswerDone)
+    assert done.answer.request == ""
+
+
 async def test_request_is_kept_when_the_answer_fails(make_meeting):
     meeting = await make_meeting([LLMError("connection failed")])
 

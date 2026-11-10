@@ -36,6 +36,9 @@ class Answer(Frozen):
     id: str = Field(default_factory=new_id)
     text: str
     at: float
+    # The one-off request the answer was written for; the field itself is cleared after the
+    # answer, so without this a later review cannot tell what the answer was asked to do.
+    request: str = ""
 
 
 class Message(Frozen):

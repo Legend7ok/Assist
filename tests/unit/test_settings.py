@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from assist.settings import PROJECT_ROOT
+
 LLM_ANSWER = """
 [llm.answer]
 provider = "openai_compat"
@@ -134,3 +136,15 @@ def test_frame_length_webrtcvad_cannot_take_is_rejected(make_settings):
 def test_vad_aggressiveness_outside_webrtcvad_modes_is_rejected(make_settings):
     with pytest.raises(ValidationError):
         make_settings(toml="[audio]\nvad_aggressiveness = 4\n")
+
+
+def test_relative_sessions_dir_is_taken_from_the_project_root(make_settings):
+    settings = make_settings(toml='[storage]\nsessions_dir = "out/sessions"\n')
+
+    assert settings.storage.sessions_dir == PROJECT_ROOT / "out" / "sessions"
+
+
+def test_absolute_sessions_dir_is_kept(make_settings, tmp_path):
+    settings = make_settings(toml=f"[storage]\nsessions_dir = '{tmp_path}'\n")
+
+    assert settings.storage.sessions_dir == tmp_path
